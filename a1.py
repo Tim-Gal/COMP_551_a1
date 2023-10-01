@@ -2,6 +2,28 @@ import numpy as np
 import pandas as pd
 
 
+class LinearRegression:
+    def __init__(self, add_bias=True):
+        self.add_bias = add_bias
+        pass
+
+    def fit(self, x, y):
+        if x.ndim == 1:
+            x = x[:, None]  # add a dimension for the features
+        N = x.shape[0]
+        if self.add_bias:
+            x = np.column_stack([x, np.ones(N)])  # add bias by adding a constant feature of value 1
+        # alternatively: self.w = np.linalg.inv(x.T @ x)@x.T@y
+        self.w = np.linalg.lstsq(x, y)[0]  # return w for the least square difference
+        return self
+
+    def predict(self, x):
+        if self.add_bias:
+            x = np.column_stack([x, np.ones(N)])
+        yh = x @ self.w  # predict the y values
+        return yh
+
+
 def remove_outliers(df, iqr_factor=4):
     df_cleaned = df.copy()  # Create a copy of the original DataFrame
     for column in df.columns:
@@ -24,6 +46,26 @@ winedf_dropped = winedf.dropna(axis=0, how='any', inplace=False)
 winedf_cleaned = remove_outliers(winedf_dropped)
 
 
+features = bostondf_cleaned[['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'LSTAT']].values
+labels = bostondf_cleaned[['MEDV']].values
+
+print(features)
+print(type(features))
+
+model = LinearRegression()
+
+model.fit(features, labels)
+
+print(model.w)
+
+new_data = np.array([0.14476, 0, 10.01, 0, 0.547, 5.731, 65.2, 2.7592, 6, 432])
+
+predictions = model.predict(new_data)
+print(predictions)
+
+
+
+"""
 mean_deviation_CRIM = bostondf['CRIM'].mean()
 mean_deviation_ZN = bostondf['ZN'].mean()
 mean_deviation_INDUS = bostondf['INDUS'].mean()
@@ -80,3 +122,4 @@ std_deviation_TAX = bostondf['TAX'].std()
 std_deviation_PTRATIO = bostondf['PTRATIO'].std()
 std_deviation_LSTAT = bostondf['LSTAT'].std()
 std_deviation_MEDV = bostondf['MEDV'].std()
+"""
