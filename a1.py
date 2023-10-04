@@ -8,26 +8,38 @@ class LinearRegression:
         pass
 
     def fit(self, x, y):
+
+        assert x.shape == (415, 12)
+
         if x.ndim == 1:
             x = x[:, None]  # add a dimension for the features
+        N = x.shape[0]
         if self.add_bias:
-            x = np.column_stack([x, np.ones(x.shape[0])])  # add bias by adding a constant feature of value 1
+            x = np.column_stack([x, np.ones(N)])  # add bias by adding a constant feature of value 1
         self.w = np.linalg.lstsq(x, y, rcond=None)[0]  # return w for the least square difference
+
+        assert x.shape == (415, 12)
+        assert self.w.shape == (12, 1)
+
         return self
 
     def predict(self, x):
-        print("x.shape : ", x.shape)
-        print(x)
+
+        assert x.shape == (12,)
+
+        if x.ndim == 1:
+            x = x[:, None]  # Add a dimension if x is 1D
         if self.add_bias:
-            x = np.column_stack([x, np.ones(x.shape[0])])  # Add a column of ones for bias
-        print("x.shape : ", x.shape)
-        print(x)
-        print("w.shape : ", self.w.shape)
-        print(self.w)
-        yh = x @ self.w  # Predict the y values
+            x = np.column_stack([x, np.ones(x.shape[0])])
+
+        assert x.shape == (12, 1)
+
+        yh = x.T @ self.w  # predict the y values
+
         return yh
 
 
+"""
 class LogisticRegression:
 
     def __init__(self, add_bias=True, learning_rate=.1, epsilon=1e-4, max_iters=1e5, verbose=False):
@@ -50,7 +62,7 @@ class LogisticRegression:
         # the code snippet below is for gradient descent
         while np.linalg.norm(g) > self.epsilon and t < self.max_iters:
             g = self.gradient(x, y)
-            self.w = self.w - self.learning_rate * g
+            self.w.T = self.w.T - self.learning_rate * g
             t += 1
 
         if self.verbose:
@@ -75,6 +87,7 @@ class LogisticRegression:
 
 
 logistic = lambda z: 1./ (1 + np.exp(-z))       #logistic function
+"""
 
 
 def remove_outliers(df, iqr_factor=4):
@@ -102,18 +115,22 @@ if __name__ == '__main__':
     features = bostondf_cleaned[['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'LSTAT']].values
     labels = bostondf_cleaned[['MEDV']].values
 
-    new_data = np.array([0.14476, 0, 10.01, 0, 0.547, 5.731, 65.2, 2.7592, 6, 432])
+    assert features.shape == (415, 12)
+    assert labels.shape == (415, 1)
 
-    LinearRegression_model = LinearRegression()
-    LinearRegression_model.fit(features, labels)
-    LinearRegression_predictions = LinearRegression_model.predict(new_data)
-    print(LinearRegression_predictions)
+    model = LinearRegression(add_bias=False)
+    model.fit(features, labels)
 
-    LogisticRegression_model = LogisticRegression()
-    LogisticRegression_model.fit(features, labels)
+    test1 = np.array([0.00632, 18, 2.31, 0, 0.538, 6.575, 65.2, 4.09, 1, 296, 15.3, 4.98])  # datapoint 1, label = 24
+    test2 = np.array([0.02729, 0, 7.07, 0, 0.469, 7.185, 61.1, 4.9671, 2, 242, 17.8, 4.03])  # datapoint 56, label = 37.4
+    assert test1.shape == test2.shape == (12,)
 
+    prediction1 = model.predict(test1)
+    prediction2 = model.predict(test2)
+    print(prediction1)
+    print(prediction2)
 
-
+    """
     mean_deviation_CRIM = bostondf['CRIM'].mean()
     mean_deviation_ZN = bostondf['ZN'].mean()
     mean_deviation_INDUS = bostondf['INDUS'].mean()
@@ -169,3 +186,4 @@ if __name__ == '__main__':
     std_deviation_PTRATIO = bostondf['PTRATIO'].std()
     std_deviation_LSTAT = bostondf['LSTAT'].std()
     std_deviation_MEDV = bostondf['MEDV'].std()
+    """
