@@ -8,86 +8,19 @@ class LinearRegression:
         pass
 
     def fit(self, x, y):
-
-        assert x.shape == (415, 12)
-
         if x.ndim == 1:
             x = x[:, None]  # add a dimension for the features
         N = x.shape[0]
         if self.add_bias:
             x = np.column_stack([x, np.ones(N)])  # add bias by adding a constant feature of value 1
         self.w = np.linalg.lstsq(x, y, rcond=None)[0]  # return w for the least square difference
-
-        assert x.shape == (415, 12)
-        assert self.w.shape == (12, 1)
-
         return self
 
     def predict(self, x):
-
-        assert x.shape == (12,)
-
-        if x.ndim == 1:
-            x = x[:, None]  # Add a dimension if x is 1D
         if self.add_bias:
             x = np.column_stack([x, np.ones(x.shape[0])])
-
-        assert x.shape == (12, 1)
-
-        yh = x.T @ self.w  # predict the y values
-
+        yh = x @ self.w  # predict the y values
         return yh
-
-
-"""
-class LogisticRegression:
-
-    def __init__(self, add_bias=True, learning_rate=.1, epsilon=1e-4, max_iters=1e5, verbose=False):
-        self.add_bias = add_bias
-        self.learning_rate = learning_rate
-        self.epsilon = epsilon  # to get the tolerance for the norm of gradients
-        self.max_iters = max_iters  # maximum number of iteration of gradient descent
-        self.verbose = verbose
-
-    def fit(self, x, y):
-        if x.ndim == 1:
-            x = x[:, None]
-        if self.add_bias:
-            N = x.shape[0]
-            x = np.column_stack([x, np.ones(N)])
-        N, D = x.shape
-        self.w = np.zeros(D)
-        g = np.inf
-        t = 0
-        # the code snippet below is for gradient descent
-        while np.linalg.norm(g) > self.epsilon and t < self.max_iters:
-            g = self.gradient(x, y)
-            self.w.T = self.w.T - self.learning_rate * g
-            t += 1
-
-        if self.verbose:
-            print(f'terminated after {t} iterations, with norm of the gradient equal to {np.linalg.norm(g)}')
-            print(f'the weight found: {self.w}')
-        return self
-
-    def predict(self, x):
-        if x.ndim == 1:
-            x = x[:, None]
-        Nt = x.shape[0]
-        if self.add_bias:
-            x = np.column_stack([x,np.ones(Nt)])
-        yh = logistic(np.dot(x,self.w))            #predict output
-        return yh
-
-    def gradient(self, x, y):
-        N, D = x.shape
-        yh = logistic(np.dot(x, self.w))  # predictions  size N
-        grad = np.dot(x.T, yh - y) / N  # divide by N because cost is mean over N points
-        return grad  # size D
-
-
-logistic = lambda z: 1./ (1 + np.exp(-z))       #logistic function
-"""
 
 
 def remove_outliers(df, iqr_factor=4):
@@ -102,35 +35,7 @@ def remove_outliers(df, iqr_factor=4):
     return df_cleaned
 
 
-if __name__ == '__main__':
-
-    bostondf = pd.read_csv("boston.csv")
-    bostondf_dropped = bostondf.dropna(axis=0, how='any', inplace=False)
-    bostondf_cleaned = remove_outliers(bostondf_dropped)
-
-    winedf = pd.read_csv("wine.data")
-    winedf_dropped = winedf.dropna(axis=0, how='any', inplace=False)
-    winedf_cleaned = remove_outliers(winedf_dropped)
-
-    features = bostondf_cleaned[['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'LSTAT']].values
-    labels = bostondf_cleaned[['MEDV']].values
-
-    assert features.shape == (415, 12)
-    assert labels.shape == (415, 1)
-
-    model = LinearRegression(add_bias=False)
-    model.fit(features, labels)
-
-    test1 = np.array([0.00632, 18, 2.31, 0, 0.538, 6.575, 65.2, 4.09, 1, 296, 15.3, 4.98])  # datapoint 1, label = 24
-    test2 = np.array([0.02729, 0, 7.07, 0, 0.469, 7.185, 61.1, 4.9671, 2, 242, 17.8, 4.03])  # datapoint 56, label = 37.4
-    assert test1.shape == test2.shape == (12,)
-
-    prediction1 = model.predict(test1)
-    prediction2 = model.predict(test2)
-    print(prediction1)
-    print(prediction2)
-
-    """
+def calculate_stats():
     mean_deviation_CRIM = bostondf['CRIM'].mean()
     mean_deviation_ZN = bostondf['ZN'].mean()
     mean_deviation_INDUS = bostondf['INDUS'].mean()
@@ -186,4 +91,34 @@ if __name__ == '__main__':
     std_deviation_PTRATIO = bostondf['PTRATIO'].std()
     std_deviation_LSTAT = bostondf['LSTAT'].std()
     std_deviation_MEDV = bostondf['MEDV'].std()
-    """
+
+
+if __name__ == '__main__':
+
+    # ----- BOSTON ------
+    bostondf = pd.read_csv("boston.csv")
+    bostondf_dropped = bostondf.dropna(axis=0, how='any', inplace=False)
+    bostondf_cleaned = remove_outliers(bostondf_dropped)
+
+    features = bostondf_cleaned[['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'LSTAT']].values
+    labels = bostondf_cleaned[['MEDV']].values
+    assert features.shape == (415, 12)
+    assert labels.shape == (415, 1)
+
+    model = LinearRegression(add_bias=True)
+    model.fit(features, labels)
+    assert model.w.shape == (13, 1)
+
+    test1 = np.array([[0.00632, 18, 2.31, 0, 0.538, 6.575, 65.2, 4.09, 1, 296, 15.3, 4.98]])  # datapoint 1, label = 24
+    test2 = np.array([[0.02729, 0, 7.07, 0, 0.469, 7.185, 61.1, 4.9671, 2, 242, 17.8, 4.03]])  # datapoint 56, label = 37.4
+    assert test1.shape == test2.shape == (1, 12)
+
+    prediction1 = model.predict(test1)
+    prediction2 = model.predict(test2)
+    assert prediction1 == 30.002191570011213
+    assert prediction2 == 31.21019806631363
+
+    # ----- BOSTON ------
+    winedf = pd.read_csv("wine.data")
+    winedf_dropped = winedf.dropna(axis=0, how='any', inplace=False)
+    winedf_cleaned = remove_outliers(winedf_dropped)
