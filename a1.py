@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 
 
 class LinearRegression:
@@ -109,7 +110,8 @@ if __name__ == '__main__':
     labels = bostondf_cleaned[['MEDV']].values
 
     # ----- HOLDOUT VALIDATION -----
-    X_train, X_test, Y_train, Y_test = train_test_split(features, labels, test_size=0.2, random_state=42)
+    test_size = 0.2
+    X_train, X_test, Y_train, Y_test = train_test_split(features, labels, test_size=test_size, random_state=42)
 
     model = LinearRegression()
     model.fit(X_train, Y_train)
@@ -120,9 +122,8 @@ if __name__ == '__main__':
     train_mse = calculate_mse(Y_train, Y_train_pred)
     test_mse = calculate_mse(Y_test, Y_test_pred)
 
-    print("model performance (MSE) on training set:", train_mse)
-    print("model performance (MSE) on testing set:", test_mse)
-
+    print(f"model performance (MSE) on training set ({test_size*100}% of data set): {train_mse}")
+    print(f"model performance (MSE) on testing set ({100-test_size*100} of data set): {test_mse}")
 
     # ----- CROSS VALIDATION -----
     k = 5
@@ -155,6 +156,40 @@ if __name__ == '__main__':
     test_avg_mse = np.mean(test_mse_values)
     print("Average model performance (MSE) across 5 folds, on training set:", train_avg_mse)
     print("Average model performance (MSE) across 5 folds, on testing set:", test_avg_mse)
+
+    # ----- LEARNING CURVE ANALYSIS -----
+    train_mse_values = []
+    test_mse_values = []
+    training_sizes = []
+
+    for test_size in range(2, 9):
+        X_train, X_test, Y_train, Y_test = train_test_split(features, labels, test_size=test_size/10, random_state=42)
+        training_sizes.append(test_size*10)
+
+        model = LinearRegression()
+        model.fit(X_train, Y_train)
+
+        Y_train_pred = model.predict(X_train)
+        Y_test_pred = model.predict(X_test)
+
+        train_mse = calculate_mse(Y_train, Y_train_pred)
+        test_mse = calculate_mse(Y_test, Y_test_pred)
+
+        train_mse_values.append(train_mse)
+        test_mse_values.append(test_mse)
+
+        print(f"model performance (MSE) on training set ({test_size * 10}% of data set): {train_mse}")
+        print(f"model performance (MSE) on testing set ({100 - test_size * 10}% of data set): {test_mse}")
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(training_sizes, train_mse_values, label="Training MSE", marker='o')
+    plt.plot(training_sizes, test_mse_values, label="Test MSE", marker='o')
+    plt.xlabel("Training Size (%)")
+    plt.ylabel("Mean Squared Error (MSE)")
+    plt.title("Learning Curves")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
     # ----- WINE ------
     winedf = pd.read_csv("wine.data")
