@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 
 class LinearRegression:
@@ -93,6 +94,10 @@ def calculate_stats():
     std_deviation_MEDV = bostondf['MEDV'].std()
 
 
+def calculate_mse(true, pred):
+    return np.mean((true - pred) ** 2)
+
+
 if __name__ == '__main__':
 
     # ----- BOSTON ------
@@ -102,23 +107,56 @@ if __name__ == '__main__':
 
     features = bostondf_cleaned[['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'LSTAT']].values
     labels = bostondf_cleaned[['MEDV']].values
-    assert features.shape == (415, 12)
-    assert labels.shape == (415, 1)
 
-    model = LinearRegression(add_bias=True)
-    model.fit(features, labels)
-    assert model.w.shape == (13, 1)
+    # ----- HOLDOUT VALIDATION -----
+    X_train, X_test, Y_train, Y_test = train_test_split(features, labels, test_size=0.2, random_state=42)
 
-    test1 = np.array([[0.00632, 18, 2.31, 0, 0.538, 6.575, 65.2, 4.09, 1, 296, 15.3, 4.98]])  # datapoint 1, label = 24
-    test2 = np.array([[0.02729, 0, 7.07, 0, 0.469, 7.185, 61.1, 4.9671, 2, 242, 17.8, 4.03]])  # datapoint 56, label = 37.4
-    assert test1.shape == test2.shape == (1, 12)
+    model = LinearRegression()
+    model.fit(X_train, Y_train)
 
-    prediction1 = model.predict(test1)
-    prediction2 = model.predict(test2)
-    assert prediction1 == 30.002191570011213
-    assert prediction2 == 31.21019806631363
+    Y_train_pred = model.predict(X_train)
+    Y_test_pred = model.predict(X_test)
 
-    # ----- BOSTON ------
+    train_mse = calculate_mse(Y_train, Y_train_pred)
+    test_mse = calculate_mse(Y_test, Y_test_pred)
+
+    print("model performance (MSE) on training set:", train_mse)
+    print("model performance (MSE) on testing set:", test_mse)
+
+
+    # ----- CROSS VALIDATION -----
+    k = 5
+    fold_size = len(features) // k
+    train_mse_values = []
+    test_mse_values = []
+
+    for i in range(k):
+        start = i * fold_size
+        end = (i + 1) * fold_size if i < k - 1 else None
+
+        X_test_fold = features[start:end]
+        Y_test_fold = labels[start:end]
+        X_train_fold = np.vstack((features[:start], features[end:])) if end is not None else features[:start]
+        Y_train_fold = np.vstack((labels[:start], labels[end:])) if end is not None else labels[:start]
+
+        model = LinearRegression()
+        model.fit(X_train_fold, Y_train_fold)
+
+        Y_train_pred = model.predict(X_train_fold)
+        Y_test_pred = model.predict(X_test_fold)
+
+        train_mse_fold = calculate_mse(Y_train_fold, Y_train_pred)
+        test_mse_fold = calculate_mse(Y_test_fold, Y_test_pred)
+
+        train_mse_values.append(train_mse_fold)
+        test_mse_values.append(test_mse_fold)
+
+    train_avg_mse = np.mean(train_mse_values)
+    test_avg_mse = np.mean(test_mse_values)
+    print("Average model performance (MSE) across 5 folds, on training set:", train_avg_mse)
+    print("Average model performance (MSE) across 5 folds, on testing set:", test_avg_mse)
+
+    # ----- WINE ------
     winedf = pd.read_csv("wine.data")
     winedf_dropped = winedf.dropna(axis=0, how='any', inplace=False)
     winedf_cleaned = remove_outliers(winedf_dropped)
